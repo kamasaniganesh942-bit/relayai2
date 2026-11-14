@@ -141,20 +141,25 @@ app.use('*', (req, res) => {
 // Centralized Error Handler
 app.use(errorHandler);
 
-// Start Server and Automation Scheduler
-const server = app.listen(PORT, () => {
-  console.log(`=================================================`);
-  console.log(`🚀 RELAY AI Unified Platform running on port ${PORT}`);
-  console.log(`🌐 Web App:     http://localhost:${PORT}/`);
-  console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
-  console.log(`🧠 AI Engine:    Google Gemini (${process.env.GEMINI_MODEL || 'gemini-1.5-flash'})`);
-  if (staticPath) {
-    console.log(`📦 Serving UI:   ${staticPath}`);
-  }
-  console.log(`=================================================`);
-  
-  // Start background deadline & escalation monitoring
-  scheduler.start();
-});
+// Start Server and Automation Scheduler (skip when in Vercel serverless environment)
+let server = null;
+if (!process.env.VERCEL) {
+  server = app.listen(PORT, () => {
+    console.log(`=================================================`);
+    console.log(`🚀 RELAY AI Unified Platform running on port ${PORT}`);
+    console.log(`🌐 Web App:     http://localhost:${PORT}/`);
+    console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
+    console.log(`🧠 AI Engine:    Google Gemini (${process.env.GEMINI_MODEL || 'gemini-1.5-flash'})`);
+    if (staticPath) {
+      console.log(`📦 Serving UI:   ${staticPath}`);
+    }
+    console.log(`=================================================`);
+    
+    // Start background deadline & escalation monitoring
+    scheduler.start();
+  });
+}
 
-module.exports = { app, server };
+module.exports = app;
+module.exports.app = app;
+module.exports.server = server;
