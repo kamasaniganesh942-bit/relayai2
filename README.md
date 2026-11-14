@@ -73,21 +73,35 @@ cp .env.example .env
 npm install
 ```
 
-### 2. Run the Application
+### 2. Run the Unified Application (Recommended)
 
-In terminal 1 (Backend):
+From the project root directory, build the frontend and start the unified fullstack platform:
+```bash
+npm run build
+npm start
+```
+
+Now open **http://localhost:5000** in your browser. Both the React frontend UI and the Express backend API are served seamlessly on a single port!
+
+---
+
+### 3. Alternative: Running in Split Development Mode (Hot-Reload)
+
+If you are developing and need instant Hot Module Reloading (HMR):
+
+In terminal 1 (Backend API):
 ```bash
 cd backend
 node src/index.js
 ```
 
-In terminal 2 (Frontend):
+In terminal 2 (Vite Frontend):
 ```bash
 cd frontend
 npm run dev
 ```
 
-Visit **http://localhost:5173** in your browser.
+Visit **http://localhost:5173** (API calls are automatically proxied to port 5000).
 
 ---
 

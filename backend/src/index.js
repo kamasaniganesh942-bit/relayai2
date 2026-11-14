@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 require('dotenv').config();
 require('express-async-errors');
@@ -37,7 +38,9 @@ const PORT = process.env.PORT || 5000;
 
 // Security & Middleware
 app.use(helmet({
+  contentSecurityPolicy: false,
   crossOriginResourcePolicy: false,
+  crossOriginEmbedderPolicy: false,
 }));
 
 app.use(cors({
@@ -99,8 +102,39 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportRoutes);
 
-// 404 Route Handler
+// Serve Frontend Static Assets (Merged Fullstack Mode)
+const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
+const backendPublicPath = path.resolve(__dirname, '../public');
+
+let staticPath = null;
+if (fs.existsSync(frontendDistPath)) {
+  staticPath = frontendDistPath;
+} else if (fs.existsSync(backendPublicPath)) {
+  staticPath = backendPublicPath;
+}
+
+if (staticPath) {
+  app.use(express.static(staticPath));
+
+  // SPA Fallback: Any non-API GET request serves index.html
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(staticPath, 'index.html'));
+  });
+}
+
+// 404 Route Handler for undefined /api routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ success: false, error: `API route not found: ${req.method} ${req.originalUrl}` });
+});
+
+// General 404 handler for non-GET methods or missing static assets
 app.use('*', (req, res) => {
+  if (staticPath && req.method === 'GET') {
+    return res.sendFile(path.join(staticPath, 'index.html'));
+  }
   res.status(404).json({ success: false, error: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 
@@ -110,9 +144,13 @@ app.use(errorHandler);
 // Start Server and Automation Scheduler
 const server = app.listen(PORT, () => {
   console.log(`=================================================`);
-  console.log(`🚀 RELAY AI Enterprise Server running on port ${PORT}`);
+  console.log(`🚀 RELAY AI Unified Platform running on port ${PORT}`);
+  console.log(`🌐 Web App:     http://localhost:${PORT}/`);
   console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
-  console.log(`🧠 AI Engine: Google Gemini API (${process.env.GEMINI_MODEL || 'gemini-1.5-flash'})`);
+  console.log(`🧠 AI Engine:    Google Gemini (${process.env.GEMINI_MODEL || 'gemini-1.5-flash'})`);
+  if (staticPath) {
+    console.log(`📦 Serving UI:   ${staticPath}`);
+  }
   console.log(`=================================================`);
   
   // Start background deadline & escalation monitoring
